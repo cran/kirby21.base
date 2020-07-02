@@ -16,6 +16,15 @@
 #' @return A logical indicating the data is there.
 #' @export
 #' @importFrom git2r clone
+#' @examples 
+#' on_cran = !identical(Sys.getenv("NOT_CRAN"), "true")
+#' on_ci <- nzchar(Sys.getenv("CI"))
+#' local_run = grepl("musch", tolower(Sys.info()[["user"]]))
+#' run_example = !on_cran || on_ci || local_run
+#' if (run_example) {
+#' outdir = tempdir()
+#' res = download_kirby21_data("SURVEY", outdir = outdir)
+#' }
 download_kirby21_data =  function(
   modality = kirby21.base::all_modalities(),
   progress = TRUE,
@@ -40,30 +49,33 @@ download_kirby21_data =  function(
   not_installed = !(pkg %in% packs)
   no_pack = pkg[not_installed]
   if (any(not_installed)) {
-    if (!force) {
-      pkg = paste(pkg, collapse = ", ")
-      stop(paste0(pkg, 
-                  " Package not installed, must install package", 
-                  " first to download the data"))
-    } else {
-      #########################
-      # Hack for CRAN
-      # Will still download data, but not really 
-      # install the package
-      #########################      
-      pack_dirs = file.path(.Library, no_pack)
-      dir.create(pack_dirs, showWarnings = FALSE)
-      sapply(no_pack, function(p){
-        pp = c(
-          paste0("Package: ", p),
-          "Version: 0.0")
-        desc_file = file.path(.Library, p, "DESCRIPTION")
-        writeLines(text = pp, con = desc_file)
-      })
-      # desc_files = file.path(pack_dirs, "DESCRIPTION")
-      # on.exit({
-      #   file.remove(desc_files)
-      # })
+    if (is.null(outdir)) {
+      if (!force) {
+        pkg = paste(pkg, collapse = ", ")
+        stop(paste0(pkg, 
+                    " Package not installed, must install package", 
+                    " first to download the data"))
+      } else {
+        
+        #########################
+        # Hack for CRAN
+        # Will still download data, but not really 
+        # install the package
+        #########################      
+        pack_dirs = file.path(.Library, no_pack)
+        dir.create(pack_dirs, showWarnings = FALSE)
+        sapply(no_pack, function(p){
+          pp = c(
+            paste0("Package: ", p),
+            "Version: 0.0")
+          desc_file = file.path(.Library, p, "DESCRIPTION")
+          writeLines(text = pp, con = desc_file)
+        })
+        # desc_files = file.path(pack_dirs, "DESCRIPTION")
+        # on.exit({
+        #   file.remove(desc_files)
+        # })
+      }
     }
   }
   if (is.null(fnames)) {
